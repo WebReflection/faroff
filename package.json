@@ -1,0 +1,27 @@
+{
+  "name": "faroff",
+  "version": "0.0.1",
+  "description": "",
+  "main": "cjs/index.js",
+  "module": "esm/index.js",
+  "scripts": {
+    "build": "npm run cjs && npm run esm",
+    "cjs": "echo \"'use strict';\" > cjs/index.js && cat index.js >> cjs/index.js && echo 'module.exports = faroff;' >> cjs/index.js",
+    "esm": "cp index.js esm/index.js && echo 'export default faroff;' >> esm/index.js",
+    "test": "node -e 'console.assert(typeof require(\"./\") === typeof Function)'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WebReflection/faroff.git"
+  },
+  "keywords": [],
+  "author": "Andrea Giammarchi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/WebReflection/faroff/issues"
+  },
+  "homepage": "https://github.com/WebReflection/faroff#readme",
+  "dependencies": {
+    "url-search-params": "^1.1.0"
+  }
+}
