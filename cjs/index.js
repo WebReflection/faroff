@@ -66,7 +66,9 @@ const grab = (method, path, url, headers, data) =>
             headers: res.headers,
             json: data.length ? JSON.parse(data.join('')) : null,
             message: res.statusMessage,
-            status: res.statusCode
+            status: res.statusCode,
+            statusCode: res.statusCode,
+            statusMessage: res.statusMessage
           }))
         ;
       })
