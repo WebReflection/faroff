@@ -64,7 +64,9 @@ const grab = (method, path, url, headers, data) =>
           .on('data', chunk => data.push(chunk))
           .on('end', () => resolve({
             headers: res.headers,
-            json: data.length ? JSON.parse(data.join('')) : null
+            json: data.length ? JSON.parse(data.join('')) : null,
+            message: res.statusMessage,
+            status: res.statusCode
           }))
         ;
       })
