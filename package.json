@@ -8,7 +8,7 @@
     "build": "npm run cjs && npm run esm",
     "cjs": "echo \"'use strict';\" > cjs/index.js && cat index.js >> cjs/index.js && echo 'module.exports = faroff;' >> cjs/index.js",
     "esm": "cp index.js esm/index.js && echo 'export default faroff;' >> esm/index.js",
-    "test": "node -e 'console.assert(typeof require(\"./\") === typeof Function)'"
+    "test": "node -e 'console.assert(typeof require(\"./\").get === typeof Function)'"
   },
   "repository": {
     "type": "git",

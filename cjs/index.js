@@ -17,76 +17,99 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+'use strict';
+
 const http = require('http');
 const https = require('https');
+const parse = require('url').parse;
 
 const URLSearchParams = require('url-search-params');
 
-// dehihi
-const re = /^(?:post|put)$/;
-const mote = {
+const USER_AGENT = 'faroff/' + require(
+  require('path').join(__dirname, '..', 'package.json')
+).version;
+
+const remote = {
   http: http,
   https: https
 };
 
-const request = (method, where, data, headers) => {
-  const url = require('url').parse(where);
-  const params = new URLSearchParams(url.search);
-  if (!re.test(method) && data != null)
-    Object.keys(data).forEach(key => params.append(key, data[key]));
+const request = (method, url, info) => new Promise((resolve, reject) => {
+  const headers = Object.assign(
+    {'User-Agent': USER_AGENT},
+    info.headers
+  );
+  const location = parse(url);
+  const params = new URLSearchParams(location.search);
+  if ('query' in info)
+    Object.keys(info.query)
+          .forEach(key => params.append(key, info.query[key]));
   const search = '?' + params;
-  const path = url.pathname + (search.length < 2 ? '' : search);
-  return grab(method, path, url, headers, data);
-};
-
-const grab = (method, path, url, headers, data) =>
-  new Promise((resolve, reject) => {
-    const defaultHeaders = {'User-Agent': 'curl/7.54.0'};
-    const json = re.test(method) && data != null ? JSON.stringify(data) : '';
-    const length = json.length;
-    if (0 < length) {
-      defaultHeaders['content-type'] = 'application/json';
-      defaultHeaders['content-length'] = length;
-    }
-    const req = mote[url.protocol.slice(0, -1)]
-      .request({
-        headers: Object.assign(defaultHeaders, headers),
-        hostname: url.hostname,
-        method: method.toUpperCase(),
-        path: path,
-        port: url.port
-      },
-      res => {
-        const data = [];
-        res
-          .setEncoding('utf8')
-          .on('error', reject)
-          .on('data', chunk => data.push(chunk))
-          .on('end', () => resolve({
+  const json = 'json' in info ? JSON.stringify(info.json) : '';
+  const length = json.length;
+  if (0 < length) {
+    headers['content-type'] = 'application/json';
+    headers['content-length'] = length;
+  }
+  const req = remote[location.protocol.slice(0, -1)]
+    .request({
+      headers: headers,
+      hostname: location.hostname,
+      method: method,
+      path: location.pathname + (search.length < 2 ? '' : search),
+      port: location.port
+    },
+    res => {
+      const data = [];
+      res
+        .setEncoding('utf8')
+        .on('error', reject)
+        .on('data', chunk => data.push(chunk))
+        .on('end', () => {
+          const result = {
             headers: res.headers,
-            json: data.length ? JSON.parse(data.join('')) : null,
             message: res.statusMessage,
             status: res.statusCode,
             statusCode: res.statusCode,
             statusMessage: res.statusMessage
-          }))
-        ;
-      })
-      .on('error', reject);
-    if (0 < length)
-      req.write(json);
-    req.end();
-  });
+          };
+          if (
+            data.length &&
+            -1 < res.headers['content-type'].indexOf('application/json')
+          )
+            result.json = JSON.parse(data.join(''));
+          else
+            result.body = data.join('');
+          resolve(result);
+        })
+      ;
+    })
+    .on('error', reject);
+  if (0 < length)
+    req.write(json);
+  req.end();
+});
 
-const faroff = {
-  connect: (where, data, headers) => request('connect', where, data, headers),
-  delete: (where, data, headers) => request('delete', where, data, headers),
-  get: (where, data, headers) => request('get', where, data, headers),
-  head: (where, data, headers) => request('head', where, data, headers),
-  options: (where, data, headers) => request('options', where, data, headers),
-  patch: (where, data, headers) => request('patch', where, data, headers),
-  post: (where, data, headers) => request('post', where, data, headers),
-  put: (where, data, headers) => request('put', where, data, headers),
-  trace: (where, data, headers) => request('trace', where, data, headers)
-};
+const faroff = {};
+
+[
+  'CONNECT',
+  'DELETE',
+  'GET',
+  'HEAD',
+  'OPTIONS',
+  'PATCH',
+  'POST',
+  'PUT',
+  'TRACE'
+].forEach(
+  method => {
+    faroff[method] = 
+    faroff[method.toLowerCase()] = (url, info) => (
+      typeof url === 'object' ?
+        request(method, url.url, url) :
+        request(method, url, info || {})
+    );
+  }
+);
 module.exports = faroff;
